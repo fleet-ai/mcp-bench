@@ -314,7 +314,34 @@ class LLMFactory:
                     base_url=os.getenv(f"{env_prefix}_BASE_URL"),
                     model_name=os.getenv(f"{env_prefix}_MODEL")
                 )
-        
+
+        # Custom OpenAI-compatible models (e.g. self-hosted vLLM endpoints).
+        # Each tuple is (slot_name, env_prefix). The slot is registered when
+        # both <PREFIX>_API_KEY and <PREFIX>_BASE_URL are set.
+        #
+        # BENCH_MODEL is a generic slot for arbitrary checkpoints. To preserve
+        # provenance in result JSONs and downstream logs, the config key falls
+        # back to <PREFIX>_NAME when set, so callers can register a single
+        # endpoint under a meaningful name (e.g. a checkpoint identifier)
+        # without editing this file.
+        custom_models = [
+            ("qwen3-32b-grpo", "QWEN3_32B_GRPO"),
+            ("BENCH_MODEL", "BENCH_MODEL"),
+        ]
+
+        for model_name, env_prefix in custom_models:
+            api_key = os.getenv(f"{env_prefix}_API_KEY")
+            base_url = os.getenv(f"{env_prefix}_BASE_URL")
+            if api_key and base_url:
+                config_key = os.getenv(f"{env_prefix}_NAME", model_name)
+                configs[config_key] = ModelConfig(
+                    name=config_key,
+                    provider_type="openai_compatible",
+                    api_key=api_key,
+                    base_url=base_url,
+                    model_name=os.getenv(f"{env_prefix}_MODEL", model_name)
+                )
+
         return configs
     
     @staticmethod
